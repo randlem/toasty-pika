@@ -49,6 +49,10 @@ For ease of implementation, the CPU, memory, and disk I/O limits will be hardcod
 * Memory: 2G (max)
 * Disk I/O: 1MB/s (max), no IOPS limit
 
+A new cgroup is created for each job by creating a new cgroup directory using the job id as the directory name.  At this point the required cgroup controllers can be created and resource limits set.  A file descriptor for the cgroup directory is created and attached to the `cmd` struct for the job.  This will result in the job launching directly in the cgroup.  Should the job fork a child process, this child process will also be a member of this cgroup and it's PID will appear in `cgroup.procs`.
+
+After the job process exits, regardless of how it exits, the cgroup should be torn down.  To do this, first the job manager should check to see if any processes are listed in `cgroup.procs`; these will be processes the job forked before exiting and should be killed.  To do so, `SIGKILL` will be sent to each listed process in turn and the cleanup process will block until those processes exit.  Once no PIDs exist in `cgroups.procs`, the cgroup directory can be removed.
+
 #### Job Persistance
 Jobs will be persisted to service memory for the lifetime of the job service process.  No data will be persisted between executions of the job service.  In a real production system an external persistence store such as a RDBMS would be used to store and share job data between running service instances.  Such facility is out of the scope of this design.
 
