@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+option go_package = "github.com/randlem/toasty-pika/proto";
+
+package jobservice;
+
+// A key to uniquely identify a job through the API.  Assigned by the job manager during creation.
+message JobKey {
+    string key = 1;
+}
+
+// Enum to represent the state of the job within the execution engine
+enum JobState {
+    JOB_STATE_UNDEFINED = 0;
+    JOB_STATE_RUNNING = 1;
+    JOB_STATE_FINISHED = 2;
+    JOB_STATE_FAILED = 3;
+}
+
+// The Job message is the primary representation of a job within the API and contains all relevant job metadata.
+message Job {
+    // Unique identifier for job instance.
+    JobKey id = 1;
+
+    // Command to be run as the job payload.  The command will not be executed with a shell, so globs and other shell expressions will not work as intended.
+    string command = 2;
+
+    // All the arugments to be passed into command when it's executed.
+    repeated string arguments = 3;
+
+    // Execution state of the job.
+    JobState state = 4;
+
+    // Exit code of the command executed by the job.  Value is only valid when the job is the FINISHED or FAILED state.
+    optional int32 exitCode = 5;
+
+    // Owner of the job (the identity captured when the job was created)
+    string owner = 6;
+}
+
+// Enum used to identify the origin of the streamed output
+enum OutputStream {
+    OUTPUT_STREAM_UNDEFINED=0;
+    OUTPUT_STREAM_STDOUT=1;
+    OUTPUT_STREAM_STDERR=2;
+}
+
+// JobOutput is a message that represents a block of output from one of the output streams of the job, stdout or stderr.
+message JobOutput {
+    bytes output = 1;
+}

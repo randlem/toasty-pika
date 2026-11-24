@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+option go_package = "github.com/randlem/toasty-pika/proto";
+
+import "proto/job.proto";
+
+package jobservice;
+
+// Define the RPC service for the Job Service API
+service JobService {
+    // Creates a new job
+    rpc Start(CreateRequest) returns (CreateResponse);
+
+    // Stops an in-progress job.  If job is in a terminal state, has no effect.
+    rpc Stop(StopRequest) returns (StopResponse);
+
+    // Lists all jobs which are available from this service
+    rpc List(ListRequest) returns (ListResponse);
+
+    // Get the Job details for the given JobKey
+    rpc Get(GetRequest) returns (GetResponse);
+
+    // Stream one of the output streams of the job, either stdout or stderr.
+    rpc StreamOutput(StreamOutputRequest) returns (stream StreamOutputRequest) {};
+}
+
+// Message to be used to create a new job through the API
+message CreateRequest {
+    // Command to be executed by the job
+    string command = 1;
+}
+
+// Message returned by the service when a new job is created.  Contains either the unique identifier for the new job or an error message if the create failed.
+message CreateResponse {
+    JobKey id = 1;
+}
+
+// Message to request the stopping of the job identified by id
+message StopRequest {
+    JobKey id = 1;
+}
+
+// Message used as a response from the Stop action
+message StopResponse {}
+
+// Message for a request to the List action
+message ListRequest {}
+
+// Message used as a response from the List action
+message ListResponse {
+    // A list of all the available job keys available through this API instance.
+    repeated JobKey jobs = 1;
+}
+
+// Message used to request a single job from Get
+message GetRequest {
+    JobKey id = 1;
+}
+
+// Message used as the response from Get action
+message GetResponse {
+    Job job = 1;
+}
+
+// Message used to request job output streaming.
+message StreamOutputRequest {
+    // Unique id of job to stream the output for.
+    JobKey id = 1;
+
+    // The output stream (stdout or stderr) to stream the output of.
+    OutputStream stream = 2;
+}
+
+// Message used as a response from the StreamOutput action.
+message StreamOutputResponse {
+    JobOutput output = 1;
+}
