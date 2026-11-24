@@ -39,10 +39,10 @@ Jobs will be uniquely identified by a UUID4 key which is created by the job engi
     * A `finished` job denotes that the exit code was `0`.
     * A `failed` job denotes that the exit code was other than `0`.  A description message will be provided in the job details.
 
-A job may be stopped by the client making the appropriate API call with the job identifier at any time before it reaches either of the terminal states `finished` or `failed`.  If the job is canceled, the job is moved to a `stopped` terminal state; stopped jobs cannot be restarted.
+A job may be stopped by the client making the appropriate API call with the job identifier at any time before it reaches either of the terminal states `finished` or `failed`.  If the job is canceled, the job is moved to a `stopped` terminal state; stopped jobs cannot be restarted.  For more details on the implementation, see section Job Cancellation.
 
 #### Job Isolation
-Jobs are isolated using cgroups v2 with hard limits for CPU, memory, and disk I/O.  The job process will not be started until the cgroups are configured, leveraging the `exec.Command` structures provided to perform the required `clone3` syscall internally.  The following cgroup controllers will be used: `cpu`, `io`, and `memory`.
+Jobs are isolated using cgroups v2 with hard limits for CPU, memory, and disk I/O.  The job process will not be started until the cgroups are configured, leveraging the `exec.CommandContext` to perform the required `clone3` syscall internally.  The following cgroup controllers will be used: `cpu`, `io`, and `memory`.
 
 For ease of implementation, the CPU, memory, and disk I/O limits will be hardcoded; each job will use the same limits.  In a production system these limits would either be part of a job specification or provided by some sort of quota or allocation system.  For this MVP the following limits will be applied:
 * CPU: 1 CPU (max)
@@ -51,6 +51,11 @@ For ease of implementation, the CPU, memory, and disk I/O limits will be hardcod
 
 #### Job Persistance
 Jobs will be persisted to service memory for the lifetime of the job service process.  No data will be persisted between executions of the job service.  In a real production system an external persistence store such as a RDBMS would be used to store and share job data between running service instances.  Such facility is out of the scope of this design.
+
+#### Job Cancellation
+To facilitate the clean shutdown of a job and any attendant processes or go-routines associated with it, the `Context` package will be leveraged.  The creation of an appropriate `Context` using `WithCancel` will be created during job initilization and passed to functions which will create processes or go-routines, including using `exec.CommandContext` when launching the job payload into the cgroup.
+
+If the job owner wishes to cancel a running job by calling the appropriate API RPC, the job execution engine will call `Cancel` on the job's `Context` which will close the internal channel and begin the teardown process for the job process, eventually resulting in the process recieving a `SIGKILL`.  To ensure that the process and it's pipes are cleanly closed, `cmd.WaitDelay` will be set for 1s.  This will ensure that process termination does happen eventually and any go-routines that could be blocked waiting for output streaming are unblocked by closing the associated pipes.
 
 #### Authentication & Authorization
 Client authentication and identity will be established using mutual TLS authentication between the service and client.  To simplify the design, a static CA certificate will be generated and used for cert signing.  The job service will not accept certificates signed by any CA other then the static CA generated for this project. The job service will only support TLS 1.3.
