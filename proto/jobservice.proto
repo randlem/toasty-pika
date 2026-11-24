@@ -2,53 +2,9 @@ syntax = "proto3";
 
 option go_package = "github.com/randlem/toasty-pika/proto";
 
-import "google/protobuf/empty.proto";
+import "proto/job.proto";
 
 package jobservice;
-
-// A key to uniquely identify a job through the API.
-message JobKey {
-    string key = 1;
-}
-
-// Enum to represent the state of the job within the execution engine
-enum JobState {
-    JOB_STATE_UNDEFINED = 0;
-    JOB_STATE_STARTING = 1;
-    JOB_STATE_RUNNING = 2;
-    JOB_STATE_FINISHED = 3;
-    JOB_STATE_FAILED = 4;
-}
-
-// The Job message is the primary representation of a job within the API and contains all relevant job metadata.
-message Job {
-    // Unique identifier for job instance.
-    JobKey id = 1;
-
-    // Command to be run as the job payload.  The command will not be executed with a shell, so globs and other shell expressions will not work as intended.
-    string command = 2;
-
-    // Execution state of the job.
-    JobState state = 3;
-
-    // Exit code of the command executed by the job.  Value is only valid when the job is the FINISHED or FAILED state.
-    optional int32 exitCode = 4;
-
-    // Owner of the job (the identity captured when the job was created)
-    string owner = 5;
-}
-
-// Enum used to identify the origin of the streamed output
-enum OutputStream {
-    OUTPUT_STREAM_UNDEFINED=0;
-    OUTPUT_STREAM_STDOUT=1;
-    OUTPUT_STREAM_STDERR=2;
-}
-
-// JobOutput is a message that represents a block of output from one of the output streams of the job, stdout or stderr.
-message JobOutput {
-    bytes output = 1;
-}
 
 // Define the RPC service for the Job Service API
 service JobService {
@@ -56,16 +12,16 @@ service JobService {
     rpc Start(CreateRequest) returns (CreateResponse);
 
     // Stops an in-progress job.  If job is in a terminal state, has no effect.
-    rpc Stop(JobKey) returns (google.protobuf.Empty);
+    rpc Stop(StopRequest) returns (StopResponse);
 
     // Lists all jobs which are available from this service
-    rpc List(google.protobuf.Empty) returns (ListResponse);
+    rpc List(ListRequest) returns (ListResponse);
 
     // Get the Job details for the given JobKey
-    rpc Get(JobKey) returns (Job);
+    rpc Get(GetRequest) returns (GetResponse);
 
     // Stream one of the output streams of the job, either stdout or stderr.
-    rpc StreamOutput(StreamOutputRequest) returns (stream JobOutput) {};
+    rpc StreamOutput(StreamOutputRequest) returns (stream StreamOutputRequest) {};
 }
 
 // Message to be used to create a new job through the API
@@ -74,20 +30,36 @@ message CreateRequest {
     string command = 1;
 }
 
-message CreateError {
-    // Error message describing why the create failed
-    string error = 1;
-}
-
 // Message returned by the service when a new job is created.  Contains either the unique identifier for the new job or an error message if the create failed.
 message CreateResponse {
     JobKey id = 1;
 }
 
+// Message to request the stopping of the job identified by id
+message StopRequest {
+    JobKey id = 1;
+}
+
+// Message used as a response from the Stop action
+message StopResponse {}
+
+// Message for a request to the List action
+message ListRequest {}
+
 // Message used as a response from the List action
 message ListResponse {
     // A list of all the available job keys available through this API instance.
     repeated JobKey jobs = 1;
+}
+
+// Message used to request a single job from Get
+message GetRequest {
+    JobKey id = 1;
+}
+
+// Message used as the response from Get action
+message GetResponse {
+    Job job = 1;
 }
 
 // Message used to request job output streaming.
@@ -97,4 +69,9 @@ message StreamOutputRequest {
 
     // The output stream (stdout or stderr) to stream the output of.
     OutputStream stream = 2;
+}
+
+// Message used as a response from the StreamOutput action.
+message StreamOutputResponse {
+    JobOutput output = 1;
 }
