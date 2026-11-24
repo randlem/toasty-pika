@@ -42,7 +42,7 @@ Jobs will be uniquely identified by a UUID4 key which is created by the job engi
 A job may be stopped by the client making the appropriate API call with the job identifier at any time before it reaches either of the terminal states `finished` or `failed`.  If the job is canceled, the job is moved to a `stopped` terminal state; stopped jobs cannot be restarted.
 
 #### Job Isolation
-Jobs are isolated using cgroups v2 with hard limits for CPU, memory, and disk I/O.  The job process will not be started until the cgroups are configured, leveraging the `exec.Command` structures provided to perform the required `clone3` syscall internally.
+Jobs are isolated using cgroups v2 with hard limits for CPU, memory, and disk I/O.  The job process will not be started until the cgroups are configured, leveraging the `exec.Command` structures provided to perform the required `clone3` syscall internally.  The following cgroup controllers will be used: `cpu`, `io`, and `memory`.
 
 For ease of implementation, the CPU, memory, and disk I/O limits will be hardcoded; each job will use the same limits.  In a production system these limits would either be part of a job specification or provided by some sort of quota or allocation system.  For this MVP the following limits will be applied:
 * CPU: 1 CPU (max)
