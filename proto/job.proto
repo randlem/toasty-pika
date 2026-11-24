@@ -4,7 +4,7 @@ option go_package = "github.com/randlem/toasty-pika/proto";
 
 package jobservice;
 
-// A key to uniquely identify a job through the API.
+// A key to uniquely identify a job through the API.  Assigned by the job manager during creation.
 message JobKey {
     string key = 1;
 }
