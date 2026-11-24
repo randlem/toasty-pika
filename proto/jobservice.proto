@@ -47,7 +47,7 @@ enum OutputStream {
 
 // JobOutput is a message that represents a block of output from one of the output streams of the job, stdout or stderr.
 message JobOutput {
-    bytes output = 2;
+    bytes output = 1;
 }
 
 // Define the RPC service for the Job Service API
@@ -81,10 +81,7 @@ message CreateError {
 
 // Message returned by the service when a new job is created.  Contains either the unique identifier for the new job or an error message if the create failed.
 message CreateResponse {
-    oneof result {
-        JobKey id = 1;
-        CreateError error = 2;
-    }
+    JobKey id = 1;
 }
 
 // Message used as a response from the List action
